@@ -50,12 +50,6 @@ export default function TaskModal({ isOpen, onClose, onSave, task }: TaskModalPr
     onSave(taskData)
   }
 
-  const handleSelectToday = () => {
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    setTaskData({ ...taskData, deadline: today.toISOString().split('T')[0] })
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>

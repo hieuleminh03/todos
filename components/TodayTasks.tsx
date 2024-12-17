@@ -192,9 +192,7 @@ function SortableTaskItem({
   onEdit,
   onDelete,
   onToggleStatus,
-  className,
-  onDragStart,
-  onDragEnd,
+  className
 }: SortableTaskItemProps) {
   const {
     attributes,
