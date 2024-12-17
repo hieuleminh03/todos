@@ -1,101 +1,124 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import TodayTasks from './../components/TodayTasks'
+import AllTasks from './../components/AllTasks'
+import { Task } from './types'
+import { loadTasks, saveTasks } from './utils/storage'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { ThemeToggle } from './../components/theme-toggle'
+
+export default function TodoApp() {
+  const [tasks, setTasks] = useState<Task[]>([])
+
+  useEffect(() => {
+    setTasks(loadTasks())
+  }, [])
+
+  useEffect(() => {
+    saveTasks(tasks)
+  }, [tasks])
+
+  const addTask = (task: Task) => {
+    setTasks([...tasks, task])
+  }
+
+  const updateTask = (updatedTask: Task) => {
+    setTasks(tasks.map(task => task.id === updatedTask.id ? updatedTask : task))
+  }
+
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter(task => task.id !== id))
+  }
+
+  const toggleStatus = (id: string) => {
+    setTasks(tasks.map(task => {
+      if (task.id === id) {
+        const newStatus = task.status === 'done' ? 'in progress' : 'done'
+        return { ...task, status: newStatus }
+      }
+      return task
+    }))
+  }
+
+  const handleSort = (sortedTasks: Task[]) => {
+    setTasks(sortedTasks)
+  }
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        try {
+          const importedTasks = JSON.parse(content)
+          setTasks(importedTasks)
+        } catch (error) {
+          console.error('Error parsing JSON:', error)
+        }
+      }
+      reader.readAsText(file)
+    }
+  }
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(tasks, null, 2)
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+    const exportFileDefaultName = 'tasks.json'
+
+    const linkElement = document.createElement('a')
+    linkElement.setAttribute('href', dataUri)
+    linkElement.setAttribute('download', exportFileDefaultName)
+    linkElement.click()
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+    <div className="container mx-auto p-4 max-w-4xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">todos</h1>
+        <ThemeToggle />
+      </div>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>import/export</CardTitle>
+          <CardDescription>data management</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4">
+            <Input type="file" onChange={handleImport} accept=".json" className="flex-grow" />
+            <Button onClick={handleExport} variant="outline">export</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Tabs defaultValue="today" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="today">today</TabsTrigger>
+          <TabsTrigger value="all">all time</TabsTrigger>
+        </TabsList>
+        <TabsContent value="today">
+          <TodayTasks
+            tasks={tasks}
+            addTask={addTask}
+            updateTask={updateTask}
+            deleteTask={deleteTask}
+            toggleStatus={toggleStatus}
+            handleSort={handleSort}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </TabsContent>
+        <TabsContent value="all">
+          <AllTasks
+            tasks={tasks}
+            updateTask={updateTask}
+            deleteTask={deleteTask}
+            toggleStatus={toggleStatus}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </TabsContent>
+      </Tabs>
     </div>
-  );
+  )
 }
+
